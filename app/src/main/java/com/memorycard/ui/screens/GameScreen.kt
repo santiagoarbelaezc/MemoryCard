@@ -206,7 +206,7 @@ fun GameScreen(
 @Composable
 fun StarEffect(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "stars")
-    val alpha by infiniteTransition.animateFloat(
+    val starProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -223,10 +223,10 @@ fun StarEffect(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .graphicsLayer {
                         rotationZ = angle
-                        translationY = -250f * alpha
-                        alpha = 1f - alpha
-                        scaleX = alpha + 0.5f
-                        scaleY = alpha + 0.5f
+                        translationY = -250f * starProgress
+                        alpha = 1f - starProgress
+                        scaleX = starProgress + 0.5f
+                        scaleY = starProgress + 0.5f
                     }
                     .size(40.dp),
                 contentAlignment = Alignment.Center
