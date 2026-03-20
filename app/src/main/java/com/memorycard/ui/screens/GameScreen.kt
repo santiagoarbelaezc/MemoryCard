@@ -25,6 +25,26 @@ import com.memorycard.model.CardExpression
 import com.memorycard.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+/**
+ * Pantalla principal del juego MemoryCard.
+ *
+ * Muestra dos tarjetas con expresiones matemáticas y permite al jugador
+ * seleccionar cuál tiene el mayor valor. Gestiona efectos visuales y
+ * sonoros según el resultado de cada ronda, y navega automáticamente
+ * a la pantalla de resultados cuando el juego termina.
+ *
+ * ## Flujo de la pantalla:
+ * 1. Se muestran dos tarjetas boca arriba con expresiones ocultas.
+ * 2. El jugador selecciona la que cree que tiene mayor valor.
+ * 3. Las tarjetas se voltean revelando los resultados.
+ * 4. Se reproduce un sonido y efecto visual según acierto o error.
+ * 5. Al agotarse las rondas, navega a [ResultScreen].
+ *
+ * @param viewModel Instancia de [GameViewModel] que provee el estado del juego
+ * y expone las acciones del jugador.
+ * @param onNavigateToResult Callback invocado cuando [GameViewModel.gameOver] es `true`,
+ * para navegar a la pantalla de resultados.
+ */
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
@@ -39,9 +59,17 @@ fun GameScreen(
     val gameOver by viewModel.gameOver.collectAsState()
     val timeLeft by viewModel.timeLeft.collectAsState()
 
+    /** Controla la visibilidad del banner "¡Correcto!" entre rondas. */
     var showNextRoundEffect by remember { mutableStateOf(false) }
+    /** Controla la visibilidad del efecto de estrellas al ganar. */
     var showStars by remember { mutableStateOf(false) }
 
+    /**
+     * Escucha los eventos puntuales emitidos por [GameViewModel.gameEvent]:
+     * - [GameViewModel.GameEvent.Win]: reproduce sonido de victoria y muestra estrellas.
+     * - [GameViewModel.GameEvent.Lose]: reproduce sonido de derrota.
+     * - [GameViewModel.GameEvent.NextRound]: muestra el banner "¡Correcto!" por 1 segundo.
+     */
     LaunchedEffect(Unit) {
         viewModel.gameEvent.collectLatest { event ->
             when (event) {
@@ -135,6 +163,8 @@ fun GameScreen(
 
                 // Cards with animations
                 if (card1 != null && card2 != null) {
+                    // Animación de volteo para cada tarjeta (0° → 180°)
+                    // Se activa cuando resultsRevealed cambia a true
                     val animateCard1 by animateFloatAsState(
                         targetValue = if (resultsRevealed) 180f else 0f,
                         animationSpec = tween(600, easing = FastOutSlowInEasing)
@@ -195,7 +225,8 @@ fun GameScreen(
                 }
             }
 
-            // Star Particle Effect
+            // ── Efecto de estrellas al ganar ──────────────────────────────
+            // Se superpone sobre toda la pantalla durante 2 segundos
             if (showStars) {
                 StarEffect(modifier = Modifier.fillMaxSize())
             }
@@ -203,6 +234,15 @@ fun GameScreen(
     }
 }
 
+/**
+ * Efecto de partículas de estrellas animadas que se emiten desde el centro
+ * de la pantalla en 12 direcciones (cada 30°).
+ *
+ * Cada estrella se aleja hacia afuera y se desvanece usando una transición
+ * infinita que alterna entre aparecer y desaparecer (RepeatMode.Reverse).
+ *
+ * @param modifier Modificador opcional para ajustar tamaño y posición del contenedor.
+ */
 @Composable
 fun StarEffect(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "stars")
@@ -237,6 +277,23 @@ fun StarEffect(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Tarjeta interactiva del juego que representa una expresión matemática.
+ *
+ * Tiene dos caras que se alternan mediante una animación de volteo en el eje X:
+ * - **Cara frontal** (rotación < 90°): muestra la expresión y un signo `?`.
+ * - **Cara trasera** (rotación > 90°): muestra la expresión y su resultado numérico.
+ *
+ * La tarjeta solo responde a clicks cuando aún no se han revelado los resultados
+ * (`revealed = false`), evitando selecciones múltiples en la misma ronda.
+ *
+ * @param card Datos de la tarjeta: expresión matemática y su resultado calculado.
+ * @param rotation Ángulo de rotación en el eje X (0° = frente, 180° = reverso).
+ * Debe ser animado externamente con [animateFloatAsState].
+ * @param revealed Indica si los resultados ya fueron revelados en esta ronda.
+ * Cuando es `true`, deshabilita el click.
+ * @param onClick Callback invocado al seleccionar esta tarjeta antes de la revelación.
+ */
 @Composable
 fun GameCard(
     card: CardExpression,
