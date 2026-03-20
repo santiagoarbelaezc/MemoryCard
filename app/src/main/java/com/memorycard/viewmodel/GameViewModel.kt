@@ -35,8 +35,13 @@ class GameViewModel : ViewModel() {
     private val _gameOver = MutableStateFlow(false)
     val gameOver = _gameOver.asStateFlow()
 
+    private val _timeLeft = MutableStateFlow(10f)
+    val timeLeft = _timeLeft.asStateFlow()
+
     private val _gameEvent = kotlinx.coroutines.flow.MutableSharedFlow<GameEvent>()
     val gameEvent = _gameEvent.asSharedFlow()
+
+    private var timerJob: kotlinx.coroutines.Job? = null
 
     sealed class GameEvent {
         object Win : GameEvent()
@@ -60,10 +65,26 @@ class GameViewModel : ViewModel() {
         generateNewRound()
     }
 
+    private fun startTimer() {
+        timerJob?.cancel()
+        _timeLeft.value = 10f
+        timerJob = viewModelScope.launch {
+            while (_timeLeft.value > 0 && !_resultsRevealed.value) {
+                delay(100)
+                _timeLeft.value -= 0.1f
+            }
+            if (_timeLeft.value <= 0 && !_resultsRevealed.value) {
+                _gameOver.value = true
+                _gameEvent.emit(GameEvent.Lose)
+            }
+        }
+    }
+
     fun onCardSelected(selectedCard: CardExpression) {
-        if (_resultsRevealed.value) return
+        if (_resultsRevealed.value || _gameOver.value) return
 
         _resultsRevealed.value = true
+        timerJob?.cancel()
         val otherCard = if (selectedCard == _card1.value) _card2.value else _card1.value
 
         if (selectedCard.result > (otherCard?.result ?: 0)) {
@@ -71,8 +92,9 @@ class GameViewModel : ViewModel() {
             _score.value += 1
             viewModelScope.launch {
                 _gameEvent.emit(GameEvent.Win)
-                delay(1500)
-                _gameEvent.emit(GameEvent.NextRound)
+                delay(500)
+                _gameEvent.emit(GameEvent.NextRound) // This will show "Correcto"
+                delay(2000) // Wait while "Correcto" is shown on current cards
                 _currentRound.value += 1
                 _resultsRevealed.value = false
                 generateNewRound()
@@ -98,6 +120,7 @@ class GameViewModel : ViewModel() {
 
         _card1.value = expr1
         _card2.value = expr2
+        startTimer()
     }
 
     private fun generateExpression(): CardExpression {

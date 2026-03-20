@@ -33,23 +33,15 @@ fun HomeScreen(onNavigateToGame: (String) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App Icon from res/raw
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.raw.icon),
-                    contentDescription = "App Icon",
-                    modifier = Modifier.size(100.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
+            // App Icon directly (bigger, no circle)
+            Image(
+                painter = painterResource(id = R.raw.icon),
+                contentDescription = "App Icon",
+                modifier = Modifier.size(200.dp),
+                contentScale = ContentScale.Fit
+            )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = "MemoryCard",

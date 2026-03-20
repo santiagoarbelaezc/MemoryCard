@@ -37,14 +37,19 @@ fun GameScreen(
     val card2 by viewModel.card2.collectAsState()
     val resultsRevealed by viewModel.resultsRevealed.collectAsState()
     val gameOver by viewModel.gameOver.collectAsState()
+    val timeLeft by viewModel.timeLeft.collectAsState()
 
     var showNextRoundEffect by remember { mutableStateOf(false) }
+    var showStars by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.gameEvent.collectLatest { event ->
             when (event) {
                 is GameViewModel.GameEvent.Win -> {
                     MediaPlayer.create(context, R.raw.win).start()
+                    showStars = true
+                    kotlinx.coroutines.delay(2000)
+                    showStars = false
                 }
                 is GameViewModel.GameEvent.Lose -> {
                     MediaPlayer.create(context, R.raw.lose).start()
@@ -75,6 +80,19 @@ fun GameScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Timer Progress Bar
+                LinearProgressIndicator(
+                    progress = { timeLeft / 10f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = if (timeLeft < 3f) Color.Red else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Header
                 Row(
                     modifier = Modifier
@@ -175,6 +193,45 @@ fun GameScreen(
                         modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp)
                     )
                 }
+            }
+
+            // Star Particle Effect
+            if (showStars) {
+                StarEffect(modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
+}
+
+@Composable
+fun StarEffect(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "stars")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "star_alpha"
+    )
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        repeat(12) { index ->
+            val angle = index * 30f
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        rotationZ = angle
+                        translationY = -250f * alpha
+                        alpha = 1f - alpha
+                        scaleX = alpha + 0.5f
+                        scaleY = alpha + 0.5f
+                    }
+                    .size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "⭐", fontSize = 32.sp)
             }
         }
     }
